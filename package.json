@@ -1,0 +1,54 @@
+{
+	"name": "@katriel/svelte-adapter-fastly",
+	"version": "1.0.0",
+	"type": "module",
+	"license": "MIT",
+	"sideEffects": false,
+	"keywords": [
+		"sveltekit",
+		"svelte",
+		"adapter",
+		"fastly",
+		"compute",
+		"edge"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/katriellucas/svelte-adapter-fastly"
+	},
+	"exports": {
+		".": {
+			"types": "./index.d.ts",
+			"import": "./index.js"
+		}
+	},
+	"files": [
+		"files",
+		"lib",
+		"index.js",
+		"*.d.ts"
+	],
+	"engines": {
+		"node": ">=20.12.0"
+	},
+	"scripts": {
+		"check": "tsc",
+		"format": "biome format --write .",
+		"ci": "biome ci ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.6",
+		"@sveltejs/kit": "^2.53.4",
+		"@types/node": "^20.19.37",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"@sveltejs/kit": "^2.4.0"
+	},
+	"dependencies": {
+		"@fastly/js-compute": "^3.40.1",
+		"encoding-negotiator": "^3.0.0",
+		"esbuild": "^0.27.3",
+		"mrmime": "^2.0.1"
+	}
+}

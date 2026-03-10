@@ -1,0 +1,19 @@
+# dependencies
+node_modules
+
+# build artifacts
+bin
+*.tgz
+
+# logs
+*.log
+
+# caches
+.cache
+
+# editors
+.idea
+.vscode/
+
+# OS
+.DS_Store
