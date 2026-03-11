@@ -8,11 +8,11 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"noEmit": true,
+		"types": ["@fastly/js-compute"],
 		"paths": {
 			"SERVER": ["./internal.d.ts"],
 			"MANIFEST": ["./internal.d.ts"],
-			"INLINED_ASSETS": ["./internal.d.ts"],
-			"STATIC_PUBLISH_CONFIG": ["./internal.d.ts"]
+			"INLINED_ASSETS": ["./internal.d.ts"]
 		}
 	},
 	"include": ["**/*.js", "**/*.d.ts"],

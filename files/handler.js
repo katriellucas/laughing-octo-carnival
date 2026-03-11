@@ -1,10 +1,8 @@
 /// <reference types="@fastly/js-compute" />
-
 import { Server } from "SERVER";
 import { manifest, prerendered, basePath } from "MANIFEST";
 import { env } from "fastly:env";
 import { inlinedAssets } from "INLINED_ASSETS";
-// CHANGED: all asset serving logic moved to serve.js — handler only does routing
 import { serveAsset } from "./serve.js";
 
 /* Setup */
@@ -60,9 +58,8 @@ export async function handler(event) {
 		const prerenderedFile = prerendered.get(pathname)?.file;
 		const asset =
 			inlinedAssets.get(pathname) ??
-			(prerenderedFile ? inlinedAssets.get(prerenderedFile) : undefined) ??
+			(prerenderedFile ? inlinedAssets.get("/" + prerenderedFile) : undefined) ??
 			inlinedAssets.get(pathname + "/index.html");
-		// CHANGED: was serveInlinedAsset() defined inline — now delegates to serveAsset() in serve.js
 		if (asset) return serveAsset(asset, pathname, immutablePrefix, req);
 	}
 

@@ -1,4 +1,4 @@
-/** @type {(header: string, supportedEncodings: string[]) => string | null | undefined} */
+// @ts-ignore — encoding-negotiator ships no types
 import { negotiateEncoding } from "encoding-negotiator";
 
 // https://httpwg.org/specs/rfc9110.html#rfc.section.15.4.5
@@ -27,18 +27,27 @@ function headersSubset(headers, keys) {
 }
 
 /**
- * Serve an inlined asset, handling compression negotiation, ETags, and caching.
- * CHANGED: replaced serveInlinedAsset() in handler.js — all serving logic now lives here
+ * @typedef {{
+ *   bytes: Uint8Array<ArrayBuffer>,
+ *   br?: Uint8Array<ArrayBuffer>,
+ *   gzip?: Uint8Array<ArrayBuffer>,
+ *   contentType: string,
+ *   hash: string,
+ *   lastModifiedTime: number
+ * }} InlinedAsset
+ */
+
+/**
+ * Serve an asset, handling compression negotiation, ETags, and caching.
  *
- * @param {{ bytes: Uint8Array<ArrayBuffer>, br?: Uint8Array<ArrayBuffer>, gzip?: Uint8Array<ArrayBuffer>, contentType: string, hash: string, lastModifiedTime: number }} asset
+ * @param {InlinedAsset} asset
  * @param {string} pathname
  * @param {string} immutablePrefix
  * @param {Request} req
  * @returns {Response}
  */
 export function serveAsset(asset, pathname, immutablePrefix, req) {
-	// CHANGED: weak ETag — semantic identity, not byte identity (safe across encodings per RFC 9110)
-	// was: strong ETag from polynomial hash (Math.imul) — incorrect and weak collision resistance
+	// Weak ETag — semantic identity, not byte identity (safe across encodings per RFC 9110)
 	const etag = `W/"${asset.hash}"`;
 
 	/** @type {Record<string, string>} */
@@ -47,24 +56,22 @@ export function serveAsset(asset, pathname, immutablePrefix, req) {
 		ETag: etag,
 	};
 
-	// ADDED: Last-Modified header from mtime stored at build time
+	// Last-Modified header from mtime stored at build time
 	if (asset.lastModifiedTime !== 0) {
 		headers["Last-Modified"] = new Date(asset.lastModifiedTime * 1000).toUTCString();
 	}
 
-	// UNCHANGED: immutable cache control for hashed assets
+	// Immutable cache control for hashed assets
 	if (pathname.startsWith(immutablePrefix)) {
 		headers["Cache-Control"] = "public, max-age=31536000, immutable";
 	}
 
-	// ADDED: Vary header when compressed variants exist
+	// Vary header when compressed variants exist
 	if (asset.br != null || asset.gzip != null) {
 		headers["Vary"] = "Accept-Encoding";
 	}
 
-	// CHANGED: If-None-Match now handles comma-separated list, wildcard "*", and weak comparison per RFC 9110 §13.2.2
-	// was: simple string equality check — missed comma-lists, wildcards, and weak ETags
-	// If-None-Match takes priority over If-Modified-Since per RFC 9110 §13.2.2
+	// If-None-Match handles comma-separated list, wildcard "*", and weak comparison per RFC 9110 §13.2.2
 	const ifNoneMatch = (req.headers.get("If-None-Match") ?? "")
 		.split(",")
 		.map((x) => x.trim())
@@ -81,7 +88,7 @@ export function serveAsset(asset, pathname, immutablePrefix, req) {
 				headers: headersSubset(headers, HEADERS_TO_PRESERVE_FOR_304),
 			});
 	} else if (asset.lastModifiedTime !== 0) {
-		// ADDED: If-Modified-Since handling — was missing entirely
+		// If-Modified-Since handling
 		const ifModifiedSince = req.headers.get("If-Modified-Since");
 		if (ifModifiedSince != null) {
 			const sinceMs = Date.parse(ifModifiedSince);
@@ -94,15 +101,20 @@ export function serveAsset(asset, pathname, immutablePrefix, req) {
 		}
 	}
 
-	// CHANGED: encoding negotiation via encoding-negotiator — two-arg API: negotiateEncoding(header, supportedEncodings)
+	// Encoding negotiation — only advertise encodings the asset actually has
 	const acceptHeader = req.headers.get("Accept-Encoding") ?? "";
-	const encoding = negotiateEncoding(acceptHeader, ["br", "gzip"]);
+	const supported = ["br", "gzip"].filter((e) =>
+		e === "br" ? asset.br != null : asset.gzip != null
+	);
+	const encoding = supported.length > 0 ? negotiateEncoding(acceptHeader, supported) : null;
 
 	/** @type {Uint8Array<ArrayBuffer>} */
 	let bytes = asset.bytes;
+
 	if (encoding) {
 		/** @type {Uint8Array<ArrayBuffer> | undefined} */
 		const compressed = encoding === "br" ? asset.br : encoding === "gzip" ? asset.gzip : undefined;
+
 		if (compressed != null) {
 			headers["Content-Encoding"] = encoding;
 			bytes = compressed;

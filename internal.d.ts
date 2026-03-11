@@ -25,11 +25,3 @@ declare module "INLINED_ASSETS" {
 	}>;
 }
 
-// CHANGED: removed STATIC_PUBLISH_CONFIG module declaration — no longer used (dropped compute-js-static-publish)
-
-// Shared types used across lib/
-export interface FileEntry {
-	absolute: string;
-	route: string;
-	size: number;
-}

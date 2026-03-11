@@ -34,7 +34,8 @@
 	"scripts": {
 		"check": "tsc",
 		"format": "biome format --write .",
-		"ci": "biome ci ."
+		"ci": "biome ci .",
+		"prepublishOnly": "tsc"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.6",
@@ -50,5 +51,8 @@
 		"encoding-negotiator": "^3.0.0",
 		"esbuild": "^0.27.3",
 		"mrmime": "^2.0.1"
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }
