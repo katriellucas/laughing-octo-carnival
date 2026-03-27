@@ -101,6 +101,15 @@ fastly compute serve
 
 This runs the Wasm binary locally using the Fastly CLI's local simulator. KV assets are served from `bin/kv-stores/` automatically.
 
+For the local simulator to find your KV Store, add the following to your `fastly.toml`, pointing at the JSON file the adapter generated during the build:
+
+```toml
+[local_server.kv_stores]
+my-kv-store = { file = "./bin/kv-stores/my-kv-store.json", format = "json" }
+```
+
+Replace `my-kv-store` with the value you set for `kvStoreName`. The adapter writes this file automatically on every build, so you don't need to manage it manually.
+
 ---
 
 ## Options
