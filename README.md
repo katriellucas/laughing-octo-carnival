@@ -26,7 +26,7 @@ Requests are handled at the edge: static assets are served directly from the bin
 ## Installation
 
 ```bash
-npm install -D @katriel/svelte-adapter-fastly
+npm install -D @boldcodex/svelte-adapter-fastly
 ```
 
 ---
@@ -36,7 +36,7 @@ npm install -D @katriel/svelte-adapter-fastly
 ### 1. Configure the adapter in `svelte.config.js`
 
 ```js
-import adapter from '@katriel/svelte-adapter-fastly';
+import adapter from '@boldcodex/svelte-adapter-fastly';
 
 export default {
   kit: {
