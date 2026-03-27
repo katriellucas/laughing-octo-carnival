@@ -12,7 +12,8 @@
 		"paths": {
 			"SERVER": ["./internal.d.ts"],
 			"MANIFEST": ["./internal.d.ts"],
-			"INLINED_ASSETS": ["./internal.d.ts"]
+			"INLINED_ASSETS": ["./internal.d.ts"],
+			"KV_ASSETS": ["./internal.d.ts"]
 		}
 	},
 	"include": ["**/*.js", "**/*.d.ts"],

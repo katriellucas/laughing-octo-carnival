@@ -1,81 +1,158 @@
 /// <reference types="@fastly/js-compute" />
+
+import { KVStore } from "fastly:kv-store";
 import { Server } from "SERVER";
 import { manifest, prerendered, basePath } from "MANIFEST";
 import { env } from "fastly:env";
 import { inlinedAssets } from "INLINED_ASSETS";
-import { serveAsset } from "./serve.js";
+import { kvStoreName, kvPrefix, collectionName } from "KV_ASSETS";
+import { serveInlined, serveKV } from "./serve.js";
+import { isPlainObj, getErrorMsg } from "./utils.js";
 
-/* Setup */
+/**
+ * @typedef {import('./serve.js').KVAsset} KVAssetEntry
+ */
 
 const server = new Server(manifest);
+
+const kvIndexKey = `${kvPrefix}_index_${collectionName}`;
+const assetPrefix = `${basePath}/`;
+const appPath = `${basePath}/${manifest.appPath}`;
+const immutablePrefix = `${appPath}/immutable/`;
+const versionFile = `${appPath}/version.json`;
 
 await server.init({
 	env: { FASTLY_SERVICE_VERSION: env("FASTLY_SERVICE_VERSION") || "local" },
 });
 
-const appPath = basePath ? `${basePath}/${manifest.appPath}` : `/${manifest.appPath}`;
-const immutablePrefix = `${appPath}/immutable/`;
-const versionFile = `${appPath}/version.json`;
+/**
+ * Internal KV state container
+ *
+ * @type {{
+ *   store: KVStore | null,
+ *   promise: Promise<Record<string, KVAssetEntry>> | null
+ * }}
+ */
+const kvState = {
+	store: null,
+	promise: null,
+};
 
-/** @param {string} pathname */
-function decodePathname(pathname) {
+/**
+ * Fetches and validates the KV asset index
+ *
+ * @returns {Promise<Record<string, KVAssetEntry>>}
+ */
+async function fetchAssetIndex() {
 	try {
-		return decodeURIComponent(pathname);
-	} catch {
-		console.warn(`WARN: Failed to decode URI: ${pathname}`);
-		return pathname;
+		kvState.store ??= new KVStore(kvStoreName);
+
+		const data = await kvState.store.get(kvIndexKey).then((entry) => entry?.json());
+
+		if (!isPlainObj(data)) {
+			throw new Error(
+				`KV index at "${kvIndexKey}" is missing or invalid in store "${kvStoreName}"`
+			);
+		}
+
+		return data;
+	} catch (err) {
+		kvState.promise = null;
+		throw err;
 	}
 }
 
-/** @param {FetchEvent} event */
+/**
+ * Determines if a route should be treated as a static asset
+ *
+ * @param {string} pathname
+ * @param {string} filename
+ * @returns {boolean}
+ */
+function isStaticRoute(pathname, filename) {
+	if (prerendered.has(pathname)) return true;
+	if (pathname === versionFile) return true;
+	if (pathname.startsWith(immutablePrefix)) return true;
+	if (filename && manifest.assets.has(filename)) return true;
+	if (filename && manifest.assets.has(`${filename}/index.html`)) return true;
+	return false;
+}
+
+/**
+ * Generates potential file paths for a given request path
+ *
+ * @param {string} pathname
+ * @param {string} cleanPath
+ * @param {string | undefined} file
+ * @returns {string[]}
+ */
+function getAssetCandidates(pathname, cleanPath, file) {
+	const candidates = [pathname];
+
+	if (file) candidates.push(file.startsWith("/") ? file : `/${file}`);
+
+	candidates.push(`${pathname === "/" ? "" : cleanPath}/index.html`);
+
+	return candidates;
+}
+
+/**
+ * Main entry point for the Fastly Compute worker
+ *
+ * @param {FetchEvent} event
+ */
 export async function handler(event) {
-	const req = event.request;
-	const url = new URL(req.url);
-	const pathname = decodePathname(url.pathname);
+	const { request, client } = event;
+	const url = new URL(request.url);
 
-	const strippedPathname =
-		pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
-
-	let filename = "";
-	if (basePath === "" && strippedPathname.startsWith("/")) {
-		filename = strippedPathname.slice(1);
-	} else if (basePath && strippedPathname.startsWith(basePath + "/")) {
-		filename = strippedPathname.slice(basePath.length + 1);
+	/** @type {string} */
+	let pathname;
+	try {
+		pathname = decodeURIComponent(url.pathname);
+	} catch {
+		pathname = url.pathname;
 	}
 
-	const altPathname = pathname.endsWith("/") ? strippedPathname : pathname + "/";
+	const isTrailing = pathname.length > 1 && pathname.endsWith("/");
+	const cleanPath = isTrailing ? pathname.slice(0, -1) : pathname;
+	const filename = cleanPath.startsWith(assetPrefix) ? cleanPath.slice(assetPrefix.length) : "";
 
-	const isStaticAsset = Boolean(
-		filename && (manifest.assets.has(filename) || manifest.assets.has(filename + "/index.html"))
-	);
-	const isStaticRoute =
-		isStaticAsset ||
-		prerendered.has(pathname) ||
-		pathname === versionFile ||
-		pathname.startsWith(immutablePrefix);
+	if (isStaticRoute(pathname, filename)) {
+		const candidates = getAssetCandidates(pathname, cleanPath, prerendered.get(pathname)?.file);
 
-	if (isStaticRoute) {
-		const prerenderedFile = prerendered.get(pathname)?.file;
-		const asset =
-			inlinedAssets.get(pathname) ??
-			(prerenderedFile ? inlinedAssets.get("/" + prerenderedFile) : undefined) ??
-			inlinedAssets.get(pathname + "/index.html");
-		if (asset) return serveAsset(asset, pathname, immutablePrefix, req);
+		// Try Inlined
+		for (const key of candidates) {
+			const inlined = inlinedAssets.get(key);
+			if (inlined) return serveInlined(inlined, pathname, immutablePrefix, request);
+		}
+
+		// Try KV Store
+		try {
+			const index = await (kvState.promise ??= fetchAssetIndex());
+			for (const key of candidates) {
+				const kv = index[key];
+				if (kv) return serveKV(kv, pathname, immutablePrefix, request, kvStoreName, kvPrefix);
+			}
+		} catch (err) {
+			console.error(`Asset lookup error: ${getErrorMsg(err)}`);
+		}
 	}
 
-	if (altPathname && prerendered.has(altPathname)) {
-		return new Response("", { status: 308, headers: { location: altPathname + url.search } });
+	const redirectPath = isTrailing ? cleanPath : `${pathname}/`;
+	if (prerendered.has(redirectPath)) {
+		return new Response(null, {
+			status: 308,
+			headers: { location: `${redirectPath}${url.search}` },
+		});
 	}
 
-	/** @type {App.Platform} */
-	const platform = {
-		env,
-		geo: event.client.geo,
-		waitUntil: (promise) => event.waitUntil(promise),
-	};
-
-	return server.respond(req, {
-		platform,
-		getClientAddress: () => event.client.address,
+	return server.respond(request, {
+		platform: {
+			env,
+			geo: client.geo,
+			kv: (name) => new KVStore(name),
+			waitUntil: event.waitUntil.bind(event),
+		},
+		getClientAddress: () => client.address,
 	});
 }

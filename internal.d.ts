@@ -1,9 +1,6 @@
-// Virtual module declarations for esbuild alias resolution.
-// These modules don't exist on disk — they are resolved at build time
-// by the fastly-adapter esbuild plugin in adapter.js.
-
 declare module "MANIFEST" {
 	import { SSRManifest } from "@sveltejs/kit";
+
 	export const manifest: SSRManifest;
 	export const prerendered: Map<string, { file: string }>;
 	export const basePath: string;
@@ -15,9 +12,9 @@ declare module "SERVER" {
 
 declare module "INLINED_ASSETS" {
 	export const inlinedAssets: Map<string, {
-		bytes: Uint8Array<ArrayBuffer>;
-		br?: Uint8Array<ArrayBuffer>;
-		gzip?: Uint8Array<ArrayBuffer>;
+		bytes: Uint8Array;
+		br?: Uint8Array;
+		gzip?: Uint8Array;
 		contentType: string;
 		size: number;
 		hash: string;
@@ -25,3 +22,8 @@ declare module "INLINED_ASSETS" {
 	}>;
 }
 
+declare module "KV_ASSETS" {
+	export const kvStoreName: string;
+	export const kvPrefix: string;
+	export const collectionName: string;
+}
