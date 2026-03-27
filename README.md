@@ -89,6 +89,14 @@ This produces:
 fastly compute deploy
 ```
 
+This deploys a previously built `bin/main.wasm` to your Fastly service.
+
+Alternatively, use `fastly compute publish` to build and deploy in a single step:
+
+```bash
+fastly compute publish
+```
+
 If you have KV assets, make sure your Fastly service has a KV Store linked with the name you configured (see [Options](#options) below).
 
 ---
