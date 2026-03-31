@@ -53,6 +53,7 @@
 		"@sveltejs/kit": "^2.4.0"
 	},
 	"dependencies": {
+		"@boldcodex/svelte-adapter-fastly": "katriellucas/laughing-octo-carnival",
 		"@fastly/js-compute": "^3.40.1",
 		"encoding-negotiator": "^3.0.0",
 		"esbuild": "^0.27.4",

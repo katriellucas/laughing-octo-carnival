@@ -3,19 +3,19 @@
 import type { Adapter } from "@sveltejs/kit";
 
 export interface AdapterOptions {
-	publish?: {
+	content?: {
 		/**
 		 * Name of the Fastly KV Store to use for large assets
 		 */
 		kvStoreName: string;
 
 		/**
-		 * Prefix for all KV keys
+		 * Unique prefix for all KV keys
 		 * Only needed when sharing a KV Store between multiple apps
 		 *
 		 * @default "default"
 		 */
-		kvPrefix?: string;
+		publishId?: string;
 
 		/**
 		 * Asset collection name
@@ -26,7 +26,7 @@ export interface AdapterOptions {
 		collectionName?: string;
 
 		/**
-		 * Maximum asset size in bytes to inline into the WebAssembly binary
+		 * Maximum asset size in bytes to inline into the Wasm binary
 		 *
 		 * @default 10240
 		 */

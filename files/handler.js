@@ -5,7 +5,7 @@ import { Server } from "SERVER";
 import { manifest, prerendered, basePath } from "MANIFEST";
 import { env } from "fastly:env";
 import { inlinedAssets } from "INLINED_ASSETS";
-import { kvStoreName, kvPrefix, collectionName } from "KV_ASSETS";
+import { kvStoreName, publishId, collectionName } from "KV_ASSETS";
 import { serveInlined, serveKV } from "./serve.js";
 import { isPlainObj, getErrorMsg } from "./utils.js";
 
@@ -15,7 +15,7 @@ import { isPlainObj, getErrorMsg } from "./utils.js";
 
 const server = new Server(manifest);
 
-const kvIndexKey = `${kvPrefix}_index_${collectionName}`;
+const kvIndexKey = `${publishId}_index_${collectionName}`;
 const assetPrefix = `${basePath}/`;
 const appPath = `${basePath}/${manifest.appPath}`;
 const immutablePrefix = `${appPath}/immutable/`;
@@ -131,7 +131,7 @@ export async function handler(event) {
 			const index = await (kvState.promise ??= fetchAssetIndex());
 			for (const key of candidates) {
 				const kv = index[key];
-				if (kv) return serveKV(kv, pathname, immutablePrefix, request, kvStoreName, kvPrefix);
+				if (kv) return serveKV(kv, pathname, immutablePrefix, request, kvStoreName, publishId);
 			}
 		} catch (err) {
 			console.error(`Asset lookup error: ${getErrorMsg(err)}`);

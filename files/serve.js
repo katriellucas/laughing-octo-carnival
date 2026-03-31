@@ -218,7 +218,10 @@ export function serveInlined(asset, pathname, immutablePrefix, request) {
 	}
 
 	headers.set("content-length", `${body.length}`);
-	return new Response(body, { status: 200, headers });
+	return new Response(/** @type {BodyInit} */ (/** @type {unknown} */ (body)), {
+		status: 200,
+		headers,
+	});
 }
 
 /**
@@ -229,12 +232,12 @@ export function serveInlined(asset, pathname, immutablePrefix, request) {
  * @param {string} immutablePrefix
  * @param {Request} request
  * @param {string} kvStoreName
- * @param {string} kvPrefix
+ * @param {string} publishId
  * @returns {Promise<Response>}
  */
-export async function serveKV(asset, pathname, immutablePrefix, request, kvStoreName, kvPrefix) {
+export async function serveKV(asset, pathname, immutablePrefix, request, kvStoreName, publishId) {
 	const hash = asset.key.startsWith("sha256:") ? asset.key.slice(7) : asset.key;
-	const baseKey = `${kvPrefix}_files_sha256:${hash}`;
+	const baseKey = `${publishId}_files_sha256:${hash}`;
 	const etag = `W/"${hash}"`;
 
 	const headers = new Headers({ "content-type": asset.contentType, etag });

@@ -24,6 +24,6 @@ declare module "INLINED_ASSETS" {
 
 declare module "KV_ASSETS" {
 	export const kvStoreName: string;
-	export const kvPrefix: string;
+	export const publishId: string;
 	export const collectionName: string;
 }
