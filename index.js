@@ -8,7 +8,7 @@ import { adapt } from "./lib/adapter.js";
  */
 export default function (options = {}) {
 	return {
-		name: `@boldcodex/svelte-adapter-fastly`,
+		name: `@katriel/svelte-adapter-fastly`,
 
 		async adapt(builder) {
 			await adapt(builder, options);

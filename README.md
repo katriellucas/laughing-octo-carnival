@@ -26,7 +26,7 @@ Requests are handled at the edge: static assets are served directly from the bin
 ## Installation
 
 ```bash
-npm install -D @boldcodex/svelte-adapter-fastly
+npm install -D @katriel/svelte-adapter-fastly
 ```
 
 ---
@@ -36,7 +36,7 @@ npm install -D @boldcodex/svelte-adapter-fastly
 ### 1. Configure the adapter in `svelte.config.js`
 
 ```js
-import adapter from '@boldcodex/svelte-adapter-fastly';
+import adapter from '@katriel/svelte-adapter-fastly';
 
 export default {
   kit: {
@@ -126,9 +126,9 @@ All options are optional. Pass them to the adapter:
 
 ```js
 adapter({
-  publish: {
+  content: {
     kvStoreName: 'my-kv-store',
-    kvPrefix: 'default',
+    publishId: 'default',
     collectionName: 'live',
     wasmAssetLimit: 10240,
     kvChunkSize: 20971520,

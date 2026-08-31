@@ -1,13 +1,13 @@
 /// <reference types="@fastly/js-compute" />
 
-import { KVStore } from "fastly:kv-store";
-import { Server } from "SERVER";
-import { manifest, prerendered, basePath } from "MANIFEST";
-import { env } from "fastly:env";
 import { inlinedAssets } from "INLINED_ASSETS";
-import { kvStoreName, publishId, collectionName } from "KV_ASSETS";
+import { collectionName, kvStoreName, publishId } from "KV_ASSETS";
+import { basePath, manifest, prerendered } from "MANIFEST";
+import { Server } from "SERVER";
+import { env } from "fastly:env";
+import { KVStore } from "fastly:kv-store";
 import { serveInlined, serveKV } from "./serve.js";
-import { isPlainObj, getErrorMsg } from "./utils.js";
+import { getErrorMsg, isPlainObj } from "./utils.js";
 
 /**
  * @typedef {import('./serve.js').KVAsset} KVAssetEntry
@@ -128,7 +128,8 @@ export async function handler(event) {
 
 		// Try KV Store
 		try {
-			const index = await (kvState.promise ??= fetchAssetIndex());
+			kvState.promise ??= fetchAssetIndex();
+			const index = await kvState.promise;
 			for (const key of candidates) {
 				const kv = index[key];
 				if (kv) return serveKV(kv, pathname, immutablePrefix, request, kvStoreName, publishId);
